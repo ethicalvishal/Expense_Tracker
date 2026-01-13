@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Tracker</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container mt-5">
+    <h1 class="mb-4 text-primary">Expense Tracker</h1>
+
+    <!-- Expense Form -->
+    <form method="POST" class="card p-4 shadow-sm mb-5">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="date" class="form-label">Date</label>
+            <input type="date" class="form-control" id="date" name="date" required>
+        </div>
+        <div class="mb-3">
+            <label for="category" class="form-label">Category (like:- Food, Travel, Shopping, dress, ...)</label>
+            <input type="text" class="form-control" id="category" name="category" required>
+        </div>
+        <div class="mb-3">
+            <label for="description" class="form-label">Description</label>
+            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+        </div>
+        
+        <div class="mb-3">
+            <label for="amount" class="form-label">Amount</label>
+            <input type="number" step="0.01" class="form-control" id="amount" name="amount" required>
+        </div>
+        <button type="submit" class="btn btn-success">Add Expense</button>
+    </form>
+
+    <!-- Expense List -->
+    <h4 class="mt-4">All Expenses</h4>
+    <ul class="list-group">
+        {% for expense in expenses %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span>{{ expense.date|date:"M d, Y" }} | {{ expense.category }} | {{ expense.description }}</span>
+                <span class="badge bg-primary rounded-pill">₹{{ expense.amount }}</span>
+            </li>
+        {% endfor %}
+    </ul>
+
+     <!-- Total -->
+    <h3>Total: ₹{{ total_amount }}</h3>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
