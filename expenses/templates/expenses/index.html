@@ -40,13 +40,24 @@
         {% for expense in expenses %}
             <li class="list-group-item d-flex justify-content-between align-items-center">
                 <span>{{ expense.date|date:"M d, Y" }} | {{ expense.category }} | {{ expense.description }}</span>
-                <span class="badge bg-primary rounded-pill">₹{{ expense.amount }}</span>
+
+                <div>
+                    <span class="badge bg-primary rounded-pill">₹{{ expense.amount }}</span>
+
+                    <!-- Delete Single Expense -->
+                    <a href="{% url 'delete_expense' expense.id %}" class="btn btn-danger btn-sm ms-2"
+                    onclick="return confirm('Delete this expense?')">Delete</a>
+                </div>
             </li>
         {% endfor %}
     </ul>
 
-     <!-- Total -->
-    <h3>Total: ₹{{ total_amount }}</h3>
+     <!-- Total Amount -->
+    <h3 class="mt-4">Total: ₹{{ total_amount }}</h3>
+
+    <!-- Delete All Expenses -->
+     <a href="{% url 'delete_all_expenses' %}" class="btn btn-danger mt-3" onclick="return confirm('Delete all expenses?')">Delete All Expenses</a>
+
 </div>
 
 <!-- Bootstrap JS -->
