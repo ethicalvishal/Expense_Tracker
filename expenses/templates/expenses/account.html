@@ -1,0 +1,50 @@
+{% extends "expenses/base.html" %}
+{% block title %}Account - Expense Tracker{% endblock %}
+
+{% block content %}
+<div class="narrow stack">
+    <form method="POST" class="card card-pad">
+        {% csrf_token %}
+        <div class="profile-head">
+            <div class="avatar avatar-lg">{{ user.username|slice:":1" }}</div>
+            <div>
+                <h1 class="form-card-title" style="margin:0">{{ user.first_name|default:user.username }}</h1>
+                <div class="muted">@{{ user.username }} &middot; {{ expense_count }} saved expense{{ expense_count|pluralize }}</div>
+            </div>
+        </div>
+
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger"><svg class="icon"><use href="#i-alert"/></svg><div class="alert-body">{{ form.non_field_errors }}</div></div>
+        {% endif %}
+
+        {% for field in form %}
+            <div class="field">
+                <label class="label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% for error in field.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+            </div>
+        {% endfor %}
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Save profile</button>
+            <a href="{% url 'password_change' %}" class="btn btn-outline"><svg class="icon icon-sm"><use href="#i-lock"/></svg> Change password</a>
+            <a href="{% url 'export_csv' %}" class="btn btn-outline"><svg class="icon icon-sm"><use href="#i-download"/></svg> Download my data</a>
+        </div>
+    </form>
+
+    <div class="card card-pad card-danger">
+        <h2 class="danger-title">Delete my account</h2>
+        <p class="muted" style="margin-bottom:16px">This permanently deletes your account and all your expenses. It cannot be undone. Until you do this, your data stays saved.</p>
+        <form method="POST" action="{% url 'delete_account' %}"
+              data-confirm="Your account and ALL your expenses will be deleted permanently."
+              data-confirm-title="Delete your account?" data-confirm-ok="Delete account">
+            {% csrf_token %}
+            <div class="field">
+                <label class="label" for="delete-password">Enter your password to confirm</label>
+                <input type="password" name="password" id="delete-password" class="form-control" required autocomplete="current-password">
+            </div>
+            <button type="submit" class="btn btn-danger">Delete account permanently</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "expenses/base.html" %}
+{% block title %}{{ title }} - Expense Tracker{% endblock %}
+
+{% block content %}
+<div class="narrow {% if user.is_authenticated %}card card-pad{% endif %}">
+    {% if validlink is False %}
+        <h1 class="auth-title">Link not valid</h1>
+        <p class="auth-sub">This password reset link is invalid or has already been used.</p>
+        <a href="{% url 'password_reset' %}" class="btn btn-primary btn-block">Request a new link</a>
+    {% else %}
+        <h1 class="auth-title">{{ title }}</h1>
+        <p class="auth-sub">
+            {% if submit_label == 'Send reset link' %}Enter your account email and we will send you a link to choose a new password.
+            {% elif submit_label == 'Set new password' %}Choose a strong password for your account.
+            {% else %}Keep your account safe with a strong password.{% endif %}
+        </p>
+
+        <form method="POST">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger"><svg class="icon"><use href="#i-alert"/></svg><div class="alert-body">{{ form.non_field_errors }}</div></div>
+            {% endif %}
+
+            {% for field in form %}
+                <div class="field">
+                    <label class="label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}<div class="form-text">{{ field.help_text|safe }}</div>{% endif %}
+                    {% for error in field.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+                </div>
+            {% endfor %}
+
+            <button type="submit" class="btn btn-primary btn-block">{{ submit_label }}</button>
+        </form>
+
+        <p class="auth-foot">
+            {% if user.is_authenticated %}<a href="{% url 'account' %}">Back to my account</a>{% else %}<a href="{% url 'login' %}">Back to login</a>{% endif %}
+        </p>
+    {% endif %}
+</div>
+{% endblock %}

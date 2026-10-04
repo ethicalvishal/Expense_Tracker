@@ -1,0 +1,44 @@
+<aside class="sidebar" id="sidebar" aria-label="Main navigation">
+    <a class="brand" href="{% url 'dashboard' %}">
+        <span class="brand-logo">₹</span><span>Expense Tracker</span>
+    </a>
+
+    <a class="btn btn-primary side-cta" href="{% url 'add_expense' %}">
+        <svg class="icon"><use href="#i-plus"/></svg> New expense
+    </a>
+
+    <div class="side-label">Menu</div>
+    <a class="nav-link {% if current == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}">
+        <svg class="icon"><use href="#i-grid"/></svg> Dashboard
+    </a>
+    <a class="nav-link {% if current == 'expense_list' or current == 'add_expense' or current == 'edit_expense' %}active{% endif %}" href="{% url 'expense_list' %}">
+        <svg class="icon"><use href="#i-list"/></svg> Expenses
+    </a>
+    <a class="nav-link {% if current == 'budget' %}active{% endif %}" href="{% url 'budget' %}">
+        <svg class="icon"><use href="#i-pie"/></svg> Budget
+    </a>
+    <a class="nav-link {% if current == 'account' %}active{% endif %}" href="{% url 'account' %}">
+        <svg class="icon"><use href="#i-user"/></svg> Account
+    </a>
+
+    <div class="side-spacer"></div>
+
+    <div class="side-user">
+        <div class="avatar">{{ user.username|slice:":1" }}</div>
+        <div>
+            <div class="side-user-name">{{ user.first_name|default:user.username }}</div>
+            <div class="side-user-mail">{{ user.email|default:user.username }}</div>
+        </div>
+    </div>
+    <div class="side-row">
+        <button type="button" class="side-btn" data-theme-toggle aria-label="Switch light / dark theme">
+            <svg class="icon theme-moon"><use href="#i-moon"/></svg>
+            <svg class="icon theme-sun"><use href="#i-sun"/></svg>
+            Theme
+        </button>
+        <form method="POST" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="side-btn"><svg class="icon"><use href="#i-logout"/></svg> Logout</button>
+        </form>
+    </div>
+</aside>

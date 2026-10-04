@@ -1,0 +1,38 @@
+{% extends "expenses/base.html" %}
+{% block title %}Budget - Expense Tracker{% endblock %}
+
+{% block content %}
+<div class="narrow">
+    <a href="{% url 'dashboard' %}" class="back-link"><svg class="icon icon-sm"><use href="#i-arrow-left"/></svg> Back to dashboard</a>
+
+    <form method="POST" class="card card-pad">
+        {% csrf_token %}
+        <div class="stat-icon indigo" style="margin-bottom:14px"><svg class="icon"><use href="#i-pie"/></svg></div>
+        <h1 class="form-card-title">Monthly budget</h1>
+        <p class="form-card-sub">Set how much you want to spend each month. Your dashboard shows the progress and turns amber, then red, as you get close to the limit.</p>
+
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger"><svg class="icon"><use href="#i-alert"/></svg><div class="alert-body">{{ form.non_field_errors }}</div></div>
+        {% endif %}
+
+        <div class="field">
+            <label class="label" for="{{ form.monthly_limit.id_for_label }}">{{ form.monthly_limit.label }}</label>
+            <div class="input-group"><span class="prefix">₹</span>{{ form.monthly_limit }}</div>
+            {% for error in form.monthly_limit.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Save budget</button>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline">Cancel</a>
+        </div>
+    </form>
+
+    {% if has_budget %}
+        <form method="POST" action="{% url 'remove_budget' %}" style="margin-top:16px"
+              data-confirm="You can set a new budget at any time." data-confirm-title="Remove your budget?" data-confirm-ok="Remove">
+            {% csrf_token %}
+            <button type="submit" class="btn-link">Remove my budget</button>
+        </form>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "expenses/base.html" %}
+{% block title %}Sign up - Expense Tracker{% endblock %}
+
+{% block content %}
+<div>
+    <h1 class="auth-title">Create your account</h1>
+    <p class="auth-sub">Free forever. Your expenses stay saved until you delete them.</p>
+
+    <form method="POST">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger"><svg class="icon"><use href="#i-alert"/></svg><div class="alert-body">{{ form.non_field_errors }}</div></div>
+        {% endif %}
+
+        {% for field in form %}
+            <div class="field">
+                <label class="label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}<div class="form-text">{{ field.help_text|safe }}</div>{% endif %}
+                {% for error in field.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+            </div>
+        {% endfor %}
+
+        <button type="submit" class="btn btn-primary btn-block">Create account</button>
+    </form>
+
+    <p class="auth-foot">Already have an account? <a href="{% url 'login' %}">Log in</a></p>
+</div>
+{% endblock %}

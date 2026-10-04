@@ -1,0 +1,178 @@
+{% extends "expenses/base.html" %}
+{% block title %}Dashboard - Expense Tracker{% endblock %}
+
+{% block content %}
+    <section class="hero">
+        <div class="hero-hi">Welcome back,</div>
+        <h1 class="hero-title">{{ user.first_name|default:user.username }}</h1>
+        <div class="hero-amount">₹{{ month_total|floatformat:2 }}</div>
+        <div class="hero-note">spent in {{ month_label }}</div>
+        <div class="hero-actions">
+            <a href="{% url 'add_expense' %}" class="btn btn-light"><svg class="icon"><use href="#i-plus"/></svg> Add expense</a>
+            <a href="{% url 'expense_list' %}" class="btn btn-ghost">View all</a>
+        </div>
+    </section>
+
+    <div class="stats">
+        <div class="card stat">
+            <div class="stat-icon indigo"><svg class="icon"><use href="#i-card"/></svg></div>
+            <div><div class="stat-label">All-time total</div><div class="stat-value">₹{{ all_total|floatformat:2 }}</div></div>
+        </div>
+        <div class="card stat">
+            <div class="stat-icon green"><svg class="icon"><use href="#i-layers"/></svg></div>
+            <div><div class="stat-label">Total entries</div><div class="stat-value">{{ entry_count }}</div></div>
+        </div>
+        <div class="card stat">
+            <div class="stat-icon amber"><svg class="icon"><use href="#i-trend"/></svg></div>
+            <div>
+                <div class="stat-label">Top category this month</div>
+                <div class="stat-value">{% if has_category_data %}{{ chart_data.category.labels.0 }}{% else %}-{% endif %}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Budget -->
+    {% if budget %}
+        <div class="card card-pad budget">
+            <div class="ring ring-{{ budget.level }}" style="--p: {{ budget.percent }}"><span>{{ budget.percent }}%</span></div>
+            <div class="budget-info">
+                <div class="budget-title">Monthly budget: ₹{{ budget.limit|floatformat:2 }}</div>
+                <div class="budget-line">
+                    {% if budget.over %}
+                        <span class="text-danger"><strong class="text-danger">Over budget by ₹{{ budget.over_by|floatformat:2 }}</strong></span>
+                    {% else %}
+                        <strong>₹{{ budget.remaining|floatformat:2 }}</strong> left to spend this month
+                    {% endif %}
+                </div>
+            </div>
+            <a href="{% url 'budget' %}" class="btn btn-soft btn-sm">Edit budget</a>
+        </div>
+    {% else %}
+        <div class="card card-pad budget budget-empty">
+            <div class="stat-icon indigo"><svg class="icon"><use href="#i-pie"/></svg></div>
+            <div class="budget-info">
+                <div class="budget-title">No monthly budget yet</div>
+                <div class="budget-line">Set a limit and track how much you can still spend each month.</div>
+            </div>
+            <a href="{% url 'budget' %}" class="btn btn-primary btn-sm">Set budget</a>
+        </div>
+    {% endif %}
+
+    <!-- Charts -->
+    <div class="charts">
+        <div class="card card-pad">
+            <h3 class="card-title">Spending by category <span class="muted" style="font-weight:500">- {{ month_label }}</span></h3>
+            {% if has_category_data %}
+                <div class="chart-box"><canvas id="categoryChart"></canvas></div>
+            {% else %}
+                <div class="chart-empty">
+                    <div><div class="empty-icon" style="margin:0 auto 10px"><svg class="icon"><use href="#i-pie"/></svg></div>No expenses this month yet.</div>
+                </div>
+            {% endif %}
+        </div>
+        <div class="card card-pad">
+            <h3 class="card-title">Last 6 months</h3>
+            <div class="chart-box"><canvas id="trendChart"></canvas></div>
+        </div>
+    </div>
+
+    <!-- Recent -->
+    <div class="section-head">
+        <h2>Recent expenses</h2>
+        <a href="{% url 'expense_list' %}">View all</a>
+    </div>
+    <div class="card tx-list">
+        {% for expense in recent %}
+            <div class="tx">
+                <div class="tx-avatar" data-cat="{{ expense.category }}">{{ expense.category|slice:":1"|upper }}</div>
+                <div class="tx-main">
+                    <div class="tx-title">{{ expense.description|default:expense.category|truncatechars:60 }}</div>
+                    <div class="tx-sub"><span class="chip" data-cat="{{ expense.category }}">{{ expense.category }}</span><span>{{ expense.date|date:"M d, Y" }}</span></div>
+                </div>
+                <div class="tx-amount">₹{{ expense.amount|floatformat:2 }}</div>
+            </div>
+        {% empty %}
+            <div class="empty">
+                <div class="empty-icon"><svg class="icon"><use href="#i-receipt"/></svg></div>
+                <h3>No expenses yet</h3>
+                <p>Add your first expense to see your dashboard come alive.</p>
+                <a href="{% url 'add_expense' %}" class="btn btn-primary" style="margin-top:10px">Add expense</a>
+            </div>
+        {% endfor %}
+    </div>
+
+    {{ chart_data|json_script:"chart-data" }}
+{% endblock %}
+
+{% block fab %}
+    <a href="{% url 'add_expense' %}" class="fab" aria-label="Add expense"><svg class="icon"><use href="#i-plus"/></svg></a>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script>
+    (function () {
+        if (!window.Chart) { return; }  // CDN blocked: the page still works without charts
+        var data = JSON.parse(document.getElementById('chart-data').textContent);
+        var palette = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+                       '#0ea5e9', '#ec4899', '#14b8a6', '#f97316', '#64748b'];
+        var charts = [];
+
+        function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+        function render() {
+            charts.forEach(function (chart) { chart.destroy(); });
+            charts = [];
+            Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+            Chart.defaults.color = css('--muted');
+
+            var categoryCanvas = document.getElementById('categoryChart');
+            if (categoryCanvas && data.category.labels.length) {
+                charts.push(new Chart(categoryCanvas, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.category.labels,
+                        datasets: [{
+                            data: data.category.values,
+                            backgroundColor: data.category.labels.map(function (_, i) { return palette[i % palette.length]; }),
+                            borderColor: css('--surface'),
+                            borderWidth: 3,
+                            hoverOffset: 6
+                        }]
+                    },
+                    options: {
+                        maintainAspectRatio: false,
+                        cutout: '66%',
+                        plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, padding: 14 } } }
+                    }
+                }));
+            }
+
+            charts.push(new Chart(document.getElementById('trendChart'), {
+                type: 'bar',
+                data: {
+                    labels: data.trend.labels,
+                    datasets: [{
+                        label: 'Spent (₹)',
+                        data: data.trend.values,
+                        backgroundColor: '#6366f1',
+                        borderRadius: 8,
+                        maxBarThickness: 40
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { beginAtZero: true, grid: { color: css('--border') } }
+                    }
+                }
+            }));
+        }
+
+        render();
+        document.addEventListener('themechange', render);
+    })();
+</script>
+{% endblock %}

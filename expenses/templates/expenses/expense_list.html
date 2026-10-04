@@ -1,0 +1,114 @@
+{% extends "expenses/base.html" %}
+{% block title %}Expenses - Expense Tracker{% endblock %}
+
+{% block content %}
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">Expenses</h1>
+            <p class="page-sub">Search, filter, edit and export everything you have spent.</p>
+        </div>
+        <div class="head-actions">
+            <a href="{% url 'export_csv' %}{% if query_string %}?{{ query_string }}{% endif %}" class="btn btn-outline"><svg class="icon"><use href="#i-download"/></svg> <span class="hide-sm">Export CSV</span></a>
+            <a href="{% url 'add_expense' %}" class="btn btn-primary"><svg class="icon"><use href="#i-plus"/></svg> Add expense</a>
+        </div>
+    </div>
+
+    <!-- Search & filter -->
+    <form method="GET" class="card filters">
+        {% if filter_form.non_field_errors %}
+            <div class="alert alert-danger" style="grid-column:1/-1;margin:0"><svg class="icon"><use href="#i-alert"/></svg><div class="alert-body">{{ filter_form.non_field_errors }}</div></div>
+        {% endif %}
+        <div class="field">
+            <label class="label" for="{{ filter_form.q.id_for_label }}">Search</label>
+            <div class="search-wrap"><svg class="icon"><use href="#i-search"/></svg>{{ filter_form.q }}</div>
+        </div>
+        <div class="field">
+            <label class="label" for="{{ filter_form.category.id_for_label }}">Category</label>
+            {{ filter_form.category }}
+            {% for error in filter_form.category.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="field">
+            <label class="label" for="{{ filter_form.start.id_for_label }}">From</label>
+            {{ filter_form.start }}
+        </div>
+        <div class="field">
+            <label class="label" for="{{ filter_form.end.id_for_label }}">To</label>
+            {{ filter_form.end }}
+        </div>
+        <div class="filter-btns">
+            <button type="submit" class="btn btn-primary">Filter</button>
+            {% if has_filters %}<a href="{% url 'expense_list' %}" class="btn btn-outline">Reset</a>{% endif %}
+        </div>
+    </form>
+
+    <div class="summary-bar">
+        <span class="pill">{{ result_count }} entr{{ result_count|pluralize:"y,ies" }}{% if has_filters %} (filtered){% endif %}</span>
+        <span class="pill">Total <strong>₹{{ result_total|floatformat:2 }}</strong></span>
+    </div>
+
+    <!-- List -->
+    <div class="card tx-list">
+        {% for expense in page_obj %}
+            <div class="tx">
+                <div class="tx-avatar" data-cat="{{ expense.category }}">{{ expense.category|slice:":1"|upper }}</div>
+                <div class="tx-main">
+                    <div class="tx-title">{{ expense.description|default:expense.category }}</div>
+                    <div class="tx-sub"><span class="chip" data-cat="{{ expense.category }}">{{ expense.category }}</span><span>{{ expense.date|date:"M d, Y" }}</span></div>
+                </div>
+                <div class="tx-amount">₹{{ expense.amount|floatformat:2 }}</div>
+                <div class="tx-actions">
+                    <a href="{% url 'edit_expense' expense.id %}" class="icon-btn" title="Edit" aria-label="Edit expense"><svg class="icon"><use href="#i-edit"/></svg></a>
+                    <form method="POST" action="{% url 'delete_expense' expense.id %}"
+                          data-confirm="This expense will be removed permanently." data-confirm-title="Delete this expense?">
+                        {% csrf_token %}
+                        <button type="submit" class="icon-btn danger" title="Delete" aria-label="Delete expense"><svg class="icon"><use href="#i-trash"/></svg></button>
+                    </form>
+                </div>
+            </div>
+        {% empty %}
+            <div class="empty">
+                <div class="empty-icon"><svg class="icon"><use href="#{% if has_filters %}i-search{% else %}i-receipt{% endif %}"/></svg></div>
+                {% if has_filters %}
+                    <h3>No matching expenses</h3>
+                    <p>Try a different search or clear the filters.</p>
+                    <a href="{% url 'expense_list' %}" class="btn btn-outline" style="margin-top:10px">Reset filters</a>
+                {% else %}
+                    <h3>No expenses yet</h3>
+                    <p>Add your first expense and it will show up here.</p>
+                    <a href="{% url 'add_expense' %}" class="btn btn-primary" style="margin-top:10px">Add expense</a>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.paginator.num_pages > 1 %}
+        <nav class="pager" aria-label="Pages">
+            {% if page_obj.has_previous %}
+                <a class="btn btn-outline btn-sm" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>
+            {% else %}
+                <span class="btn btn-outline btn-sm disabled">Previous</span>
+            {% endif %}
+            <span class="current">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+            {% if page_obj.has_next %}
+                <a class="btn btn-outline btn-sm" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.next_page_number }}">Next</a>
+            {% else %}
+                <span class="btn btn-outline btn-sm disabled">Next</span>
+            {% endif %}
+        </nav>
+    {% endif %}
+
+    <!-- Delete all (own expenses only) -->
+    {% if result_count and not has_filters %}
+        <form method="POST" action="{% url 'delete_all_expenses' %}" style="margin-top:28px"
+              data-confirm="All of your expenses will be removed permanently. This cannot be undone."
+              data-confirm-title="Delete ALL your expenses?" data-confirm-ok="Delete all">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-danger btn-sm"><svg class="icon icon-sm"><use href="#i-trash"/></svg> Delete all my expenses</button>
+        </form>
+    {% endif %}
+{% endblock %}
+
+{% block fab %}
+    <a href="{% url 'add_expense' %}" class="fab" aria-label="Add expense"><svg class="icon"><use href="#i-plus"/></svg></a>
+{% endblock %}

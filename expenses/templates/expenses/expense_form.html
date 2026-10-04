@@ -1,0 +1,51 @@
+{% extends "expenses/base.html" %}
+{% block title %}{{ title }} - Expense Tracker{% endblock %}
+
+{% block content %}
+<div class="narrow">
+    <a href="{% url 'expense_list' %}" class="back-link"><svg class="icon icon-sm"><use href="#i-arrow-left"/></svg> Back to expenses</a>
+
+    <form method="POST" class="card card-pad">
+        {% csrf_token %}
+        <h1 class="form-card-title">{{ title }}</h1>
+        <p class="form-card-sub">{% if submit_label == 'Add Expense' %}Record what you spent - it only takes a few seconds.{% else %}Update the details of this expense.{% endif %}</p>
+
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger"><svg class="icon"><use href="#i-alert"/></svg><div class="alert-body">{{ form.non_field_errors }}</div></div>
+        {% endif %}
+
+        <div class="form-grid">
+            <div class="field">
+                <label class="label" for="{{ form.date.id_for_label }}">Date</label>
+                {{ form.date }}
+                {% for error in form.date.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="field">
+                <label class="label" for="{{ form.amount.id_for_label }}">Amount</label>
+                <div class="input-group"><span class="prefix">₹</span>{{ form.amount }}</div>
+                {% for error in form.amount.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+            </div>
+        </div>
+
+        <div class="field">
+            <label class="label" for="{{ form.category.id_for_label }}">Category</label>
+            {{ form.category }}
+            <datalist id="category-options">
+                {% for name in category_suggestions %}<option value="{{ name }}">{% endfor %}
+            </datalist>
+            {% for error in form.category.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="field">
+            <label class="label" for="{{ form.description.id_for_label }}">Description <small>(optional)</small></label>
+            {{ form.description }}
+            {% for error in form.description.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">{{ submit_label }}</button>
+            <a href="{% url 'expense_list' %}" class="btn btn-outline">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

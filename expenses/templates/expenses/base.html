@@ -1,0 +1,101 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#6366f1">
+    <title>{% block title %}Expense Tracker{% endblock %}</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%236366f1'/%3E%3Ctext x='32' y='46' font-size='38' font-weight='700' text-anchor='middle' fill='white' font-family='Arial,sans-serif'%3E%E2%82%B9%3C/text%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        /* Apply the saved (or system) theme before the page paints, so there is no flash. */
+        (function () {
+            try {
+                var theme = localStorage.getItem('theme');
+                if (!theme) { theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) { document.documentElement.setAttribute('data-theme', 'light'); }
+        })();
+    </script>
+    <link rel="stylesheet" href="{% static 'expenses/style.css' %}">
+</head>
+<body>
+{% include "expenses/_icons.html" %}
+
+{% if user.is_authenticated %}
+<div class="app">
+    {% include "expenses/_sidebar.html" with current=request.resolver_match.url_name %}
+    <div class="backdrop"></div>
+
+    <div class="app-main">
+        <header class="topbar">
+            <button type="button" class="icon-btn" data-sidebar-open aria-label="Open menu"><svg class="icon"><use href="#i-menu"/></svg></button>
+            <span class="topbar-title"><span class="brand-logo sm">₹</span> Expense Tracker</span>
+            <button type="button" class="icon-btn" data-theme-toggle aria-label="Switch light / dark theme">
+                <svg class="icon theme-moon"><use href="#i-moon"/></svg>
+                <svg class="icon theme-sun"><use href="#i-sun"/></svg>
+            </button>
+        </header>
+
+        <div class="page">
+{% else %}
+<div class="auth-wrap">
+    <section class="auth-hero">
+        <a class="brand" href="{% url 'login' %}"><span class="brand-logo">₹</span><span>Expense Tracker</span></a>
+
+        <div>
+            <h2 class="hero-headline">Take control of every rupee.</h2>
+            <p class="hero-copy">Track your spending, set a monthly budget and see exactly where your money goes. Your data stays private to your account.</p>
+            <ul class="feature-list">
+                <li><span class="tick"><svg class="icon"><use href="#i-check"/></svg></span> Your own private account</li>
+                <li><span class="tick"><svg class="icon"><use href="#i-check"/></svg></span> Clear charts and monthly trends</li>
+                <li><span class="tick"><svg class="icon"><use href="#i-check"/></svg></span> Budget warnings before you overspend</li>
+                <li><span class="tick"><svg class="icon"><use href="#i-check"/></svg></span> Export everything to Excel (CSV)</li>
+            </ul>
+        </div>
+
+        <div class="mini-card" aria-hidden="true">
+            <div class="mc-label">Example dashboard</div>
+            <div class="mc-amount">₹ 24,500</div>
+            <div class="mini-bars">
+                <span style="height:38%"></span><span style="height:62%"></span><span style="height:48%"></span>
+                <span style="height:82%"></span><span style="height:56%"></span><span style="height:100%"></span>
+            </div>
+        </div>
+    </section>
+
+    <main class="auth-main">
+        <button type="button" class="icon-btn auth-theme" data-theme-toggle aria-label="Switch light / dark theme">
+            <svg class="icon theme-moon"><use href="#i-moon"/></svg>
+            <svg class="icon theme-sun"><use href="#i-sun"/></svg>
+        </button>
+{% endif %}
+            {% include "expenses/_messages.html" %}
+            {% block content %}{% endblock %}
+{% if user.is_authenticated %}
+        </div>
+    </div>
+</div>
+{% block fab %}{% endblock %}
+{% else %}
+    </main>
+</div>
+{% endif %}
+
+<!-- Styled confirmation dialog (used by forms with data-confirm) -->
+<dialog id="confirm-dialog" class="modal">
+    <div class="modal-icon"><svg class="icon"><use href="#i-alert"/></svg></div>
+    <h3 id="confirm-title">Are you sure?</h3>
+    <p id="confirm-text"></p>
+    <div class="modal-actions">
+        <button type="button" id="confirm-cancel" class="btn btn-outline">Cancel</button>
+        <button type="button" id="confirm-ok" class="btn btn-danger">Delete</button>
+    </div>
+</dialog>
+
+<script src="{% static 'expenses/app.js' %}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>
