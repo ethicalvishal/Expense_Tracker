@@ -20,13 +20,15 @@ A full-stack Django web app where every user creates their own account and track
 
 **Expenses**
 - Add, edit and delete expenses (date, category, optional description, amount in ₹)
-- Search, filter by category and date range, and pagination
+- Payment mode for every expense: **Offline (cash)** or **Online**, and for online payments the app or method used (Google Pay, PhonePe, Paytm, BHIM, Navi, YONO SBI, Amazon Pay, card, UPI, bank...)
+- Search, filter by category, payment mode, app and date range, and pagination
 - Export your expenses to CSV (opens in Excel)
 - Delete all of *your* expenses (never other users' data)
 
 **Dashboard**
 - This-month total, all-time total and entry count
 - Spending-by-category chart and 6-month trend chart
+- "How you paid" breakdown: online vs offline and each app's share
 - Monthly budget with a progress bar and over-budget warning
 
 **Security & production**

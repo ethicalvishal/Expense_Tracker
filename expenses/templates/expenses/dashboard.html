@@ -76,6 +76,26 @@
         </div>
     </div>
 
+    <!-- How you paid -->
+    {% if payment_rows %}
+        <div class="card card-pad mb">
+            <h3 class="card-title">How you paid <span class="muted" style="font-weight:500">- {{ month_label }}</span></h3>
+            <div class="split-bar" aria-hidden="true"><span style="width: {{ online_percent }}%"></span></div>
+            <div class="split-legend">
+                <span><i class="dot online"></i> Online <strong>₹{{ online_total|floatformat:2 }}</strong> ({{ online_percent }}%)</span>
+                <span><i class="dot offline"></i> Offline (cash) <strong>₹{{ offline_total|floatformat:2 }}</strong> ({{ offline_percent }}%)</span>
+            </div>
+            <ul class="method-list">
+                {% for row in payment_rows %}
+                    <li>
+                        <div class="method-top"><span>{{ row.label }}</span><strong>₹{{ row.total|floatformat:2 }}</strong></div>
+                        <div class="bar"><span style="width: {{ row.percent }}%"></span></div>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
     <!-- Recent -->
     <div class="section-head">
         <h2>Recent expenses</h2>
@@ -87,7 +107,7 @@
                 <div class="tx-avatar" data-cat="{{ expense.category }}">{{ expense.category|slice:":1"|upper }}</div>
                 <div class="tx-main">
                     <div class="tx-title">{{ expense.description|default:expense.category|truncatechars:60 }}</div>
-                    <div class="tx-sub"><span class="chip" data-cat="{{ expense.category }}">{{ expense.category }}</span><span>{{ expense.date|date:"M d, Y" }}</span></div>
+                    <div class="tx-sub"><span class="chip" data-cat="{{ expense.category }}">{{ expense.category }}</span>{% if expense.payment_label %}<span class="pay-chip {{ expense.payment_mode }}">{{ expense.payment_label }}</span>{% endif %}<span>{{ expense.date|date:"M d, Y" }}</span></div>
                 </div>
                 <div class="tx-amount">₹{{ expense.amount|floatformat:2 }}</div>
             </div>

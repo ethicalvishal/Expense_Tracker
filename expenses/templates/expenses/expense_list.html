@@ -18,7 +18,7 @@
         {% if filter_form.non_field_errors %}
             <div class="alert alert-danger" style="grid-column:1/-1;margin:0"><svg class="icon"><use href="#i-alert"/></svg><div class="alert-body">{{ filter_form.non_field_errors }}</div></div>
         {% endif %}
-        <div class="field">
+        <div class="field field-wide">
             <label class="label" for="{{ filter_form.q.id_for_label }}">Search</label>
             <div class="search-wrap"><svg class="icon"><use href="#i-search"/></svg>{{ filter_form.q }}</div>
         </div>
@@ -26,6 +26,14 @@
             <label class="label" for="{{ filter_form.category.id_for_label }}">Category</label>
             {{ filter_form.category }}
             {% for error in filter_form.category.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="field">
+            <label class="label" for="{{ filter_form.mode.id_for_label }}">Payment mode</label>
+            {{ filter_form.mode }}
+        </div>
+        <div class="field">
+            <label class="label" for="{{ filter_form.app.id_for_label }}">Paid using</label>
+            {{ filter_form.app }}
         </div>
         <div class="field">
             <label class="label" for="{{ filter_form.start.id_for_label }}">From</label>
@@ -53,7 +61,7 @@
                 <div class="tx-avatar" data-cat="{{ expense.category }}">{{ expense.category|slice:":1"|upper }}</div>
                 <div class="tx-main">
                     <div class="tx-title">{{ expense.description|default:expense.category }}</div>
-                    <div class="tx-sub"><span class="chip" data-cat="{{ expense.category }}">{{ expense.category }}</span><span>{{ expense.date|date:"M d, Y" }}</span></div>
+                    <div class="tx-sub"><span class="chip" data-cat="{{ expense.category }}">{{ expense.category }}</span>{% if expense.payment_label %}<span class="pay-chip {{ expense.payment_mode }}">{{ expense.payment_label }}</span>{% endif %}<span>{{ expense.date|date:"M d, Y" }}</span></div>
                 </div>
                 <div class="tx-amount">₹{{ expense.amount|floatformat:2 }}</div>
                 <div class="tx-actions">

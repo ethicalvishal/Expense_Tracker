@@ -36,6 +36,7 @@ class BaseTestCase(TestCase):
             'category': 'food',
             'description': 'Lunch',
             'amount': '120.50',
+            'payment_mode': 'offline',
         }
         data.update(overrides)
         return data
@@ -383,3 +384,89 @@ class MiscTests(TestCase):
         response = self.client.get(reverse('healthz'))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content, b'ok')
+
+
+# --------------------------------------------------------------------------
+# Payment mode (offline / online + app)
+# --------------------------------------------------------------------------
+
+class PaymentModeTests(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.alice)
+
+    def add(self, **overrides):
+        return self.client.post(reverse('add_expense'), self.post_data(**overrides))
+
+    def test_add_online_expense_with_app(self):
+        response = self.add(payment_mode='online', payment_app='gpay')
+        self.assertRedirects(response, reverse('expense_list'))
+        expense = Expense.objects.get()
+        self.assertEqual((expense.payment_mode, expense.payment_app), ('online', 'gpay'))
+        self.assertEqual(expense.payment_label, 'Google Pay')
+
+    def test_online_expense_needs_an_app(self):
+        response = self.add(payment_mode='online', payment_app='')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Expense.objects.count(), 0)
+
+    def test_offline_expense_is_cash_and_ignores_app(self):
+        self.add(payment_mode='offline', payment_app='gpay')
+        expense = Expense.objects.get()
+        self.assertEqual((expense.payment_mode, expense.payment_app), ('offline', ''))
+        self.assertEqual(expense.payment_label, 'Cash')
+
+    def test_payment_mode_is_required(self):
+        data = self.post_data()
+        del data['payment_mode']
+        response = self.client.post(reverse('add_expense'), data)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Expense.objects.count(), 0)
+
+    def test_rejects_unknown_app(self):
+        response = self.add(payment_mode='online', payment_app='not-an-app')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Expense.objects.count(), 0)
+
+    def test_edit_can_switch_cash_to_online(self):
+        expense = self.make_expense(self.alice, payment_mode='offline')
+        self.client.post(
+            reverse('edit_expense', args=[expense.id]),
+            self.post_data(payment_mode='online', payment_app='phonepe'),
+        )
+        expense.refresh_from_db()
+        self.assertEqual((expense.payment_mode, expense.payment_app), ('online', 'phonepe'))
+
+    def test_old_expenses_without_a_mode_still_work(self):
+        self.make_expense(self.alice)  # payment_mode left blank, like rows from before this feature
+        self.assertEqual(self.client.get(reverse('expense_list')).status_code, 200)
+        self.assertEqual(self.client.get(reverse('dashboard')).status_code, 200)
+        self.assertEqual(Expense.objects.get().payment_label, '')
+
+    def test_filter_by_mode_and_app(self):
+        self.make_expense(self.alice, description='cash one', payment_mode='offline')
+        self.make_expense(self.alice, description='gpay one', payment_mode='online', payment_app='gpay')
+        self.make_expense(self.alice, description='card one', payment_mode='online', payment_app='card')
+        url = reverse('expense_list')
+        self.assertEqual(self.client.get(url, {'mode': 'online'}).context['result_count'], 2)
+        self.assertEqual(self.client.get(url, {'mode': 'offline'}).context['result_count'], 1)
+        self.assertEqual(self.client.get(url, {'app': 'gpay'}).context['result_count'], 1)
+
+    def test_dashboard_payment_breakdown(self):
+        self.make_expense(self.alice, amount=Decimal('300'), payment_mode='online', payment_app='gpay')
+        self.make_expense(self.alice, amount=Decimal('100'), payment_mode='offline')
+        self.make_expense(self.bob, amount=Decimal('999'), payment_mode='online', payment_app='gpay')
+        response = self.client.get(reverse('dashboard'))
+        self.assertEqual(response.context['online_total'], Decimal('300'))
+        self.assertEqual(response.context['offline_total'], Decimal('100'))
+        self.assertEqual(response.context['online_percent'], 75)
+        self.assertEqual(response.context['offline_percent'], 25)
+        labels = [row['label'] for row in response.context['payment_rows']]
+        self.assertEqual(labels, ['Google Pay', 'Cash'])
+
+    def test_csv_has_payment_columns(self):
+        self.make_expense(self.alice, payment_mode='online', payment_app='navi')
+        body = self.client.get(reverse('export_csv')).content.decode('utf-8-sig')
+        self.assertIn('Payment mode', body)
+        self.assertIn('Online', body)
+        self.assertIn('Navi', body)

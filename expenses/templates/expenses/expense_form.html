@@ -1,6 +1,7 @@
 {% extends "expenses/base.html" %}
 {% block title %}{{ title }} - Expense Tracker{% endblock %}
 
+
 {% block content %}
 <div class="narrow">
     <a href="{% url 'expense_list' %}" class="back-link"><svg class="icon icon-sm"><use href="#i-arrow-left"/></svg> Back to expenses</a>
@@ -37,6 +38,22 @@
         </div>
 
         <div class="field">
+            <span class="label">Payment mode</span>
+            <div class="seg" role="radiogroup" aria-label="Payment mode">
+                {% for radio in form.payment_mode %}
+                    <label class="seg-opt" for="{{ radio.id_for_label }}">{{ radio.tag }}<span>{{ radio.choice_label }}</span></label>
+                {% endfor %}
+            </div>
+            {% for error in form.payment_mode.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="field" id="app-field">
+            <label class="label" for="{{ form.payment_app.id_for_label }}">Paid using <small>(Google Pay, PhonePe, card, bank...)</small></label>
+            {{ form.payment_app }}
+            {% for error in form.payment_app.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="field">
             <label class="label" for="{{ form.description.id_for_label }}">Description <small>(optional)</small></label>
             {{ form.description }}
             {% for error in form.description.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
@@ -48,4 +65,21 @@
         </div>
     </form>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    /* Show the "Paid using" box only when the payment mode is Online. */
+    (function () {
+        var field = document.getElementById('app-field');
+        var radios = document.querySelectorAll('input[name="payment_mode"]');
+        if (!field || !radios.length) { return; }
+        function sync() {
+            var checked = document.querySelector('input[name="payment_mode"]:checked');
+            field.hidden = !(checked && checked.value === 'online');
+        }
+        radios.forEach(function (radio) { radio.addEventListener('change', sync); });
+        sync();
+    })();
+</script>
 {% endblock %}

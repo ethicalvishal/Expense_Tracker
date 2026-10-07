@@ -33,11 +33,26 @@ class _BootstrapMixin:
 # --------------------------------------------------------------------------
 
 class ExpenseForm(forms.ModelForm):
+    # Offline (cash) or online. Required for every new / edited expense.
+    payment_mode = forms.ChoiceField(
+        choices=Expense.PAYMENT_MODE_CHOICES,
+        widget=forms.RadioSelect,
+        label='Payment mode',
+        error_messages={'required': 'Choose how you paid: offline or online.'},
+    )
+    # Only needed when the payment was online.
+    payment_app = forms.ChoiceField(
+        choices=[('', 'Select app / method')] + Expense.PAYMENT_APP_CHOICES,
+        required=False,
+        label='Paid using',
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+
     class Meta:
         model = Expense
         # "owner" is deliberately not here: the view sets it from request.user,
         # so nobody can create an expense for someone else.
-        fields = ['date', 'category', 'description', 'amount']
+        fields = ['date', 'category', 'description', 'amount', 'payment_mode', 'payment_app']
         widgets = {
             'date': forms.DateInput(
                 format='%Y-%m-%d',
@@ -61,12 +76,29 @@ class ExpenseForm(forms.ModelForm):
         # "food", "FOOD" and "Food" should all count as the same category.
         return self.cleaned_data['category'].strip().title()
 
+    def clean(self):
+        cleaned = super().clean()
+        mode = cleaned.get('payment_mode')
+        if mode == Expense.ONLINE and not cleaned.get('payment_app'):
+            self.add_error('payment_app', 'Select which app or method you used.')
+        elif mode == Expense.OFFLINE:
+            cleaned['payment_app'] = ''  # an app makes no sense for cash
+        return cleaned
+
 
 class ExpenseFilterForm(_BootstrapMixin, forms.Form):
     """Search / filter box on the expenses page (all fields optional)."""
 
     q = forms.CharField(required=False, label='Search')
     category = forms.ChoiceField(required=False)
+    mode = forms.ChoiceField(
+        required=False, label='Payment mode',
+        choices=[('', 'All payment modes')] + Expense.PAYMENT_MODE_CHOICES,
+    )
+    app = forms.ChoiceField(
+        required=False, label='Paid using',
+        choices=[('', 'All apps / methods')] + Expense.PAYMENT_APP_CHOICES,
+    )
     start = forms.DateField(
         required=False, label='From',
         widget=forms.DateInput(format='%Y-%m-%d', attrs={'type': 'date'}),

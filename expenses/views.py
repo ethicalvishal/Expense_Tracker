@@ -53,6 +53,10 @@ def _filtered_expenses(request):
             )
         if data['category']:
             queryset = queryset.filter(category=data['category'])
+        if data['mode']:
+            queryset = queryset.filter(payment_mode=data['mode'])
+        if data['app']:
+            queryset = queryset.filter(payment_app=data['app'])
         if data['start']:
             queryset = queryset.filter(date__gte=data['start'])
         if data['end']:
@@ -155,6 +159,39 @@ def dashboard(request):
         trend_labels.append(month.strftime('%b %Y'))
         trend_values.append(float(trend_totals.get((month.year, month.month), ZERO)))
 
+    # How the money was paid this month (online vs offline, and which app).
+    app_labels = dict(Expense.PAYMENT_APP_CHOICES)
+    method_totals = {}
+    online_total = offline_total = ZERO
+    paid_rows = (
+        month_expenses.exclude(payment_mode='')
+        .order_by()
+        .values('payment_mode', 'payment_app')
+        .annotate(total=Sum('amount'))
+    )
+    for row in paid_rows:
+        if row['payment_mode'] == Expense.ONLINE:
+            label = app_labels.get(row['payment_app'], 'Online')
+            online_total += row['total']
+        else:
+            label = 'Cash'
+            offline_total += row['total']
+        method_totals[label] = method_totals.get(label, ZERO) + row['total']
+    paid_total = online_total + offline_total
+    payment_rows = sorted(
+        (
+            {
+                'label': label,
+                'total': total,
+                'percent': round(float(total / paid_total * 100)),
+            }
+            for label, total in method_totals.items()
+        ),
+        key=lambda item: item['total'],
+        reverse=True,
+    )
+    online_percent = round(float(online_total / paid_total * 100)) if paid_total else 0
+
     # Budget progress.
     budget = Budget.objects.filter(owner=request.user).first()
     budget_info = None
@@ -175,6 +212,11 @@ def dashboard(request):
         'all_total': _sum(expenses),
         'entry_count': expenses.count(),
         'budget': budget_info,
+        'payment_rows': payment_rows,
+        'online_total': online_total,
+        'offline_total': offline_total,
+        'online_percent': online_percent,
+        'offline_percent': 100 - online_percent if paid_total else 0,
         'recent': expenses[:5],
         'has_category_data': bool(by_category),
         'chart_data': {
@@ -230,7 +272,7 @@ def add_expense(request):
             messages.success(request, 'Expense added.')
             return redirect('expense_list')
     else:
-        form = ExpenseForm(initial={'date': timezone.localdate()})
+        form = ExpenseForm(initial={'date': timezone.localdate(), 'payment_mode': Expense.OFFLINE})
     return _expense_form_page(request, form, 'Add expense', 'Add Expense')
 
 
@@ -275,13 +317,15 @@ def export_csv(request):
     response['Content-Disposition'] = 'attachment; filename="expenses.csv"'
     response.write('\ufeff')  # BOM so Excel reads UTF-8 correctly
     writer = csv.writer(response)
-    writer.writerow(['Date', 'Category', 'Description', 'Amount (INR)'])
+    writer.writerow(['Date', 'Category', 'Description', 'Amount (INR)', 'Payment mode', 'Paid using'])
     for expense in queryset:
         writer.writerow([
             expense.date.isoformat(),
             _csv_safe(expense.category),
             _csv_safe(expense.description),
             expense.amount,
+            expense.get_payment_mode_display(),
+            expense.get_payment_app_display(),
         ])
     return response
 
