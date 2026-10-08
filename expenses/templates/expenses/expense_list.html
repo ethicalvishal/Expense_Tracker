@@ -52,7 +52,13 @@
     <div class="summary-bar">
         <span class="pill">{{ result_count }} entr{{ result_count|pluralize:"y,ies" }}{% if has_filters %} (filtered){% endif %}</span>
         <span class="pill">Total <strong>₹{{ result_total|floatformat:2 }}</strong></span>
+        <span class="pill"><i class="dot online"></i> Online <strong>₹{{ split.online|floatformat:2 }}</strong></span>
+        <span class="pill"><i class="dot offline"></i> Cash <strong>₹{{ split.offline|floatformat:2 }}</strong></span>
+        {% if split.unset %}<span class="pill">Mode not set <strong>₹{{ split.unset|floatformat:2 }}</strong></span>{% endif %}
     </div>
+    {% if payment_filtered %}
+        <p class="muted" style="margin:-4px 0 14px;font-size:.84rem">Total is for the payment filter you chose. Online and Cash show the split for your other filters (search, category, dates).</p>
+    {% endif %}
 
     <!-- List -->
     <div class="card tx-list">

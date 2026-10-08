@@ -41,8 +41,12 @@ def _sum(queryset):
     return queryset.aggregate(total=Sum('amount'))['total'] or ZERO
 
 
-def _filtered_expenses(request):
-    """The logged-in user's expenses, narrowed by the search/filter box."""
+def _filtered_expenses(request, include_payment=True):
+    """The logged-in user's expenses, narrowed by the search/filter box.
+
+    With include_payment=False the payment mode / app filters are skipped, which
+    is used to show the online-vs-cash split for the *other* filters.
+    """
     queryset = Expense.objects.filter(owner=request.user)
     form = ExpenseFilterForm(request.GET or None, user=request.user)
     if form.is_bound and form.is_valid():
@@ -53,9 +57,9 @@ def _filtered_expenses(request):
             )
         if data['category']:
             queryset = queryset.filter(category=data['category'])
-        if data['mode']:
+        if include_payment and data['mode']:
             queryset = queryset.filter(payment_mode=data['mode'])
-        if data['app']:
+        if include_payment and data['app']:
             queryset = queryset.filter(payment_app=data['app'])
         if data['start']:
             queryset = queryset.filter(date__gte=data['start'])
@@ -242,11 +246,22 @@ def expense_list(request):
     params = request.GET.copy()
     params.pop('page', None)
 
+    # Online vs cash split for the same search / category / dates, even when
+    # the list itself is narrowed to one payment mode.
+    split_queryset, _ = _filtered_expenses(request, include_payment=False)
+    split = split_queryset.aggregate(
+        online=Sum('amount', filter=Q(payment_mode=Expense.ONLINE)),
+        offline=Sum('amount', filter=Q(payment_mode=Expense.OFFLINE)),
+        unset=Sum('amount', filter=Q(payment_mode='')),
+    )
+
     return render(request, 'expenses/expense_list.html', {
         'filter_form': filter_form,
         'page_obj': page_obj,
         'result_count': paginator.count,
         'result_total': _sum(queryset),
+        'split': {key: value or ZERO for key, value in split.items()},
+        'payment_filtered': bool(request.GET.get('mode') or request.GET.get('app')),
         'query_string': params.urlencode(),
         'has_filters': bool(params),
     })

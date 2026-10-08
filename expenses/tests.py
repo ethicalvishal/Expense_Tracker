@@ -470,3 +470,45 @@ class PaymentModeTests(BaseTestCase):
         self.assertIn('Payment mode', body)
         self.assertIn('Online', body)
         self.assertIn('Navi', body)
+
+
+class PaymentSplitTests(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.alice)
+        self.make_expense(self.alice, category='Food', amount=Decimal('300'), payment_mode='online', payment_app='gpay')
+        self.make_expense(self.alice, category='Food', amount=Decimal('100'), payment_mode='offline')
+        self.make_expense(self.alice, category='Travel', amount=Decimal('50'))  # old row, no mode
+        self.make_expense(self.bob, category='Food', amount=Decimal('999'), payment_mode='online', payment_app='gpay')
+
+    def get_list(self, **params):
+        return self.client.get(reverse('expense_list'), params)
+
+    def test_split_without_filters(self):
+        response = self.get_list()
+        self.assertEqual(response.context['result_total'], Decimal('450'))
+        self.assertEqual(response.context['split'], {
+            'online': Decimal('300'), 'offline': Decimal('100'), 'unset': Decimal('50'),
+        })
+        self.assertFalse(response.context['payment_filtered'])
+
+    def test_split_still_shows_both_when_a_mode_is_chosen(self):
+        response = self.get_list(mode='online')
+        self.assertEqual(response.context['result_total'], Decimal('300'))
+        self.assertEqual(response.context['split']['online'], Decimal('300'))
+        self.assertEqual(response.context['split']['offline'], Decimal('100'))
+        self.assertTrue(response.context['payment_filtered'])
+
+    def test_split_follows_the_other_filters(self):
+        response = self.get_list(category='Travel')
+        self.assertEqual(response.context['split']['online'], Decimal('0'))
+        self.assertEqual(response.context['split']['unset'], Decimal('50'))
+
+    def test_split_never_includes_other_users(self):
+        response = self.get_list()
+        self.assertNotEqual(response.context['split']['online'], Decimal('1299'))
+
+    def test_page_shows_online_and_cash_amounts(self):
+        response = self.get_list()
+        self.assertContains(response, '₹300.00')  # online
+        self.assertContains(response, '₹100.00')  # cash
