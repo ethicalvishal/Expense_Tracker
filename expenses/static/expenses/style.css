@@ -485,3 +485,58 @@ dialog.modal::backdrop { background: rgba(8, 11, 25, .6); backdrop-filter: blur(
 .method-top strong { font-weight: 800; }
 .bar { height: 8px; border-radius: 999px; overflow: hidden; background: var(--surface-2); }
 .bar span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--primary), var(--primary-2)); }
+
+/* ---------- Income & loans ---------- */
+.filters.compact { grid-template-columns: 2fr 1fr 1fr auto; }
+.filters.compact .field-wide { grid-column: auto; }
+@media (max-width: 1100px) {
+    .filters.compact { grid-template-columns: 1fr 1fr; }
+    .filters.compact .field-wide, .filters.compact .filter-btns { grid-column: 1 / -1; }
+}
+@media (max-width: 560px) { .filters.compact { grid-template-columns: 1fr; } }
+
+.stat-icon.red { color: var(--danger); background: var(--danger-soft); }
+.text-success { color: var(--success); }
+.stat-link { color: inherit; transition: transform .15s, box-shadow .15s; }
+.stat-link:hover { text-decoration: none; transform: translateY(-2px); }
+
+.tx-amount.in { color: var(--success); }
+.tx-amount.out { color: var(--danger); }
+a.tx-link { color: inherit; }
+a.tx-link:hover { text-decoration: none; }
+.tx-money { text-align: right; flex: none; }
+.tx-note { color: var(--muted); font-size: .78rem; white-space: nowrap; }
+.tx-avatar.big { width: 56px; height: 56px; border-radius: 18px; font-size: 1.3rem; }
+
+.pay-chip.lent { color: var(--success); background: var(--success-soft); border-color: transparent; }
+.pay-chip.borrowed { color: var(--danger); background: var(--danger-soft); border-color: transparent; }
+.pay-chip.overdue { color: #fff; background: var(--danger); border-color: transparent; }
+
+.bar.thin { height: 5px; margin-top: 8px; }
+.tx-main .bar.thin { max-width: 260px; }
+
+.people { display: flex; flex-wrap: wrap; gap: 10px; }
+.person-pill {
+    display: inline-flex; align-items: center; gap: 10px; padding: 8px 14px 8px 8px; color: var(--text);
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px;
+    transition: border-color .15s, transform .15s;
+}
+.person-pill:hover { text-decoration: none; border-color: var(--primary); transform: translateY(-1px); }
+.person-pill strong { display: block; line-height: 1.2; }
+.person-pill small { display: block; font-weight: 600; color: var(--muted); }
+.avatar.sm { width: 34px; height: 34px; font-size: .9rem; }
+.avatar[data-cat] { background: hsl(var(--h, 235) 70% 48%); }
+
+.loan-head { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-bottom: 22px; }
+.loan-title { flex: 1; min-width: 180px; }
+.loan-title .page-title { margin-bottom: 6px; }
+.loan-figures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px; }
+@media (max-width: 560px) { .loan-figures { grid-template-columns: 1fr; gap: 10px; } }
+.facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 16px; margin: 20px 0 0; padding-top: 18px; border-top: 1px solid var(--border); }
+.facts dt { color: var(--muted); font-size: .8rem; font-weight: 600; }
+.facts dd { margin: 2px 0 0; font-weight: 600; }
+.facts .wide { grid-column: 1 / -1; }
+@media (max-width: 560px) { .facts { grid-template-columns: 1fr 1fr; } }
+.detail-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 16px; align-items: start; }
+@media (max-width: 860px) { .detail-grid { grid-template-columns: 1fr; } }
+.stats > * { min-width: 0; }

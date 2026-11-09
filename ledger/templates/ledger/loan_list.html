@@ -1,0 +1,129 @@
+{% extends "expenses/base.html" %}
+{% block title %}Loans - Expense Tracker{% endblock %}
+
+{% block content %}
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">Loans</h1>
+            <p class="page-sub">Money you lent to people, money you borrowed, and what has come back.</p>
+        </div>
+        <div class="head-actions">
+            <a href="{% url 'loan_add' %}" class="btn btn-primary"><svg class="icon"><use href="#i-plus"/></svg> Add loan</a>
+        </div>
+    </div>
+
+    <div class="stats">
+        <div class="card stat">
+            <div class="stat-icon green"><svg class="icon"><use href="#i-income"/></svg></div>
+            <div><div class="stat-label">You will get</div><div class="stat-value text-success">₹{{ totals.to_receive|floatformat:2 }}</div></div>
+        </div>
+        <div class="card stat">
+            <div class="stat-icon red"><svg class="icon"><use href="#i-outcome"/></svg></div>
+            <div><div class="stat-label">You owe</div><div class="stat-value{% if totals.to_pay %} text-danger{% endif %}">₹{{ totals.to_pay|floatformat:2 }}</div></div>
+        </div>
+        <div class="card stat">
+            <div class="stat-icon amber"><svg class="icon"><use href="#i-clock"/></svg></div>
+            <div><div class="stat-label">Overdue loans</div><div class="stat-value">{{ totals.overdue_count }}</div></div>
+        </div>
+    </div>
+
+    {% if totals.people %}
+        <div class="card card-pad mb">
+            <h3 class="card-title">Balance with each person</h3>
+            <div class="people">
+                {% for person in totals.people %}
+                    <a class="person-pill" href="{% url 'loan_list' %}?q={{ person.name|urlencode }}">
+                        <span class="avatar sm" data-cat="{{ person.name }}">{{ person.name|slice:":1" }}</span>
+                        <span>
+                            <strong>{{ person.name }}</strong>
+                            <small class="{% if person.net > 0 %}text-success{% elif person.net < 0 %}text-danger{% endif %}">
+                                {% if person.net > 0 %}owes you ₹{{ person.net_abs|floatformat:2 }}{% elif person.net < 0 %}you owe ₹{{ person.net_abs|floatformat:2 }}{% else %}all even{% endif %}
+                            </small>
+                        </span>
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    <form method="GET" class="card filters compact">
+        <div class="field field-wide">
+            <label class="label" for="{{ filter_form.q.id_for_label }}">Person</label>
+            <div class="search-wrap"><svg class="icon"><use href="#i-search"/></svg>{{ filter_form.q }}</div>
+        </div>
+        <div class="field">
+            <label class="label" for="{{ filter_form.direction.id_for_label }}">Type</label>
+            {{ filter_form.direction }}
+        </div>
+        <div class="field">
+            <label class="label" for="{{ filter_form.status.id_for_label }}">Status</label>
+            {{ filter_form.status }}
+        </div>
+        <div class="filter-btns">
+            <button type="submit" class="btn btn-primary">Filter</button>
+            {% if has_filters %}<a href="{% url 'loan_list' %}" class="btn btn-outline">Reset</a>{% endif %}
+        </div>
+    </form>
+
+    <div class="card tx-list">
+        {% for loan in page_obj %}
+            <a class="tx tx-link" href="{% url 'loan_detail' loan.id %}">
+                <div class="tx-avatar" data-cat="{{ loan.person }}">{{ loan.person|slice:":1"|upper }}</div>
+                <div class="tx-main">
+                    <div class="tx-title">{{ loan.person }}</div>
+                    <div class="tx-sub">
+                        <span class="pay-chip {{ loan.direction }}">{% if loan.direction == 'lent' %}Lent{% else %}Borrowed{% endif %}</span>
+                        {% if loan.status == 'settled' %}<span class="pay-chip online">Settled</span>
+                        {% elif loan.is_overdue %}<span class="pay-chip overdue">Overdue</span>
+                        {% elif loan.status == 'partial' %}<span class="pay-chip">Partly repaid</span>{% endif %}
+                        <span>{{ loan.date|date:"M d, Y" }}</span>
+                        {% if loan.due_date and loan.status != 'settled' %}<span>&middot; return by {{ loan.due_date|date:"M d, Y" }}</span>{% endif %}
+                    </div>
+                    <div class="bar thin"><span style="width: {{ loan.repaid_percent }}%"></span></div>
+                </div>
+                <div class="tx-money">
+                    {% if loan.status == 'settled' %}
+                        <div class="tx-amount">₹{{ loan.amount|floatformat:2 }}</div>
+                        <div class="tx-note">settled</div>
+                    {% else %}
+                        <div class="tx-amount {% if loan.direction == 'lent' %}in{% else %}out{% endif %}">₹{{ loan.remaining|floatformat:2 }}</div>
+                        <div class="tx-note">left of ₹{{ loan.amount|floatformat:2 }}</div>
+                    {% endif %}
+                </div>
+            </a>
+        {% empty %}
+            <div class="empty">
+                <div class="empty-icon"><svg class="icon"><use href="#{% if has_filters %}i-search{% else %}i-users{% endif %}"/></svg></div>
+                {% if has_filters %}
+                    <h3>No matching loans</h3>
+                    <p>Try a different name or clear the filters.</p>
+                    <a href="{% url 'loan_list' %}" class="btn btn-outline" style="margin-top:10px">Reset filters</a>
+                {% else %}
+                    <h3>No loans yet</h3>
+                    <p>Add money you lent or borrowed, then record each repayment as it happens.</p>
+                    <a href="{% url 'loan_add' %}" class="btn btn-primary" style="margin-top:10px">Add loan</a>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+        <nav class="pager" aria-label="Pages">
+            {% if page_obj.has_previous %}
+                <a class="btn btn-outline btn-sm" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>
+            {% else %}
+                <span class="btn btn-outline btn-sm disabled">Previous</span>
+            {% endif %}
+            <span class="current">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+            {% if page_obj.has_next %}
+                <a class="btn btn-outline btn-sm" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.next_page_number }}">Next</a>
+            {% else %}
+                <span class="btn btn-outline btn-sm disabled">Next</span>
+            {% endif %}
+        </nav>
+    {% endif %}
+{% endblock %}
+
+{% block fab %}
+    <a href="{% url 'loan_add' %}" class="fab" aria-label="Add loan"><svg class="icon"><use href="#i-plus"/></svg></a>
+{% endblock %}

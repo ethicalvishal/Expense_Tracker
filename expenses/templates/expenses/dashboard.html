@@ -31,6 +31,35 @@
         </div>
     </div>
 
+    <!-- Money flow: income, balance and loans -->
+    <div class="stats">
+        <a class="card stat stat-link" href="{% url 'income_list' %}">
+            <div class="stat-icon green"><svg class="icon"><use href="#i-income"/></svg></div>
+            <div><div class="stat-label">Income - {{ month_label }}</div><div class="stat-value text-success">₹{{ income_month|floatformat:2 }}</div></div>
+        </a>
+        <div class="card stat">
+            <div class="stat-icon indigo"><svg class="icon"><use href="#i-card"/></svg></div>
+            <div>
+                <div class="stat-label">Balance (income - spent)</div>
+                <div class="stat-value{% if balance < 0 %} text-danger{% endif %}">{% if balance < 0 %}-₹{{ balance_abs|floatformat:2 }}{% else %}₹{{ balance|floatformat:2 }}{% endif %}</div>
+            </div>
+        </div>
+        <a class="card stat stat-link" href="{% url 'loan_list' %}">
+            <div class="stat-icon green"><svg class="icon"><use href="#i-users"/></svg></div>
+            <div><div class="stat-label">You will get (loans)</div><div class="stat-value">₹{{ to_receive|floatformat:2 }}</div></div>
+        </a>
+        <a class="card stat stat-link" href="{% url 'loan_list' %}">
+            <div class="stat-icon red"><svg class="icon"><use href="#i-outcome"/></svg></div>
+            <div><div class="stat-label">You owe (loans)</div><div class="stat-value">₹{{ to_pay|floatformat:2 }}</div></div>
+        </a>
+    </div>
+    {% if overdue_loans %}
+        <div class="alert alert-warning">
+            <svg class="icon"><use href="#i-clock"/></svg>
+            <div class="alert-body">{{ overdue_loans }} loan{{ overdue_loans|pluralize }} past the return date. <a href="{% url 'loan_list' %}?status=open">Review loans</a></div>
+        </div>
+    {% endif %}
+
     <!-- Budget -->
     {% if budget %}
         <div class="card card-pad budget">

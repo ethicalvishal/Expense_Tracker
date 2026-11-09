@@ -13,6 +13,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+from ledger.summary import dashboard_summary
+
 from .forms import (
     CATEGORY_SUGGESTIONS,
     AccountForm,
@@ -210,7 +212,16 @@ def dashboard(request):
             'level': 'danger' if percent >= 100 else 'warning' if percent >= 80 else 'success',
         }
 
+    # Money in (income) and loans, from the ledger app.
+    money = dashboard_summary(request.user, month_start, next_month)
+
     return render(request, 'expenses/dashboard.html', {
+        'income_month': money['income_month'],
+        'balance': money['income_month'] - month_total,
+        'balance_abs': abs(money['income_month'] - month_total),
+        'to_receive': money['to_receive'],
+        'to_pay': money['to_pay'],
+        'overdue_loans': money['overdue_count'],
         'month_label': today.strftime('%B %Y'),
         'month_total': month_total,
         'all_total': _sum(expenses),

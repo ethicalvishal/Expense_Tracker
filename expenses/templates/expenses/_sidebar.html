@@ -14,6 +14,12 @@
     <a class="nav-link {% if current == 'expense_list' or current == 'add_expense' or current == 'edit_expense' %}active{% endif %}" href="{% url 'expense_list' %}">
         <svg class="icon"><use href="#i-list"/></svg> Expenses
     </a>
+    <a class="nav-link {% if current == 'income_list' or current == 'income_add' or current == 'income_edit' %}active{% endif %}" href="{% url 'income_list' %}">
+        <svg class="icon"><use href="#i-income"/></svg> Income
+    </a>
+    <a class="nav-link {% if current == 'loan_list' or current == 'loan_add' or current == 'loan_detail' or current == 'loan_edit' %}active{% endif %}" href="{% url 'loan_list' %}">
+        <svg class="icon"><use href="#i-users"/></svg> Loans
+    </a>
     <a class="nav-link {% if current == 'budget' %}active{% endif %}" href="{% url 'budget' %}">
         <svg class="icon"><use href="#i-pie"/></svg> Budget
     </a>

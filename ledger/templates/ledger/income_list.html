@@ -1,0 +1,98 @@
+{% extends "expenses/base.html" %}
+{% block title %}Income - Expense Tracker{% endblock %}
+
+{% block content %}
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">Income</h1>
+            <p class="page-sub">All the money that came in - salary, freelance work, gifts and more.</p>
+        </div>
+        <div class="head-actions">
+            <a href="{% url 'income_add' %}" class="btn btn-primary"><svg class="icon"><use href="#i-plus"/></svg> Add income</a>
+        </div>
+    </div>
+
+    <form method="GET" class="card filters compact">
+        {% if filter_form.non_field_errors %}
+            <div class="alert alert-danger" style="grid-column:1/-1;margin:0"><svg class="icon"><use href="#i-alert"/></svg><div class="alert-body">{{ filter_form.non_field_errors }}</div></div>
+        {% endif %}
+        <div class="field field-wide">
+            <label class="label" for="{{ filter_form.q.id_for_label }}">Search</label>
+            <div class="search-wrap"><svg class="icon"><use href="#i-search"/></svg>{{ filter_form.q }}</div>
+        </div>
+        <div class="field">
+            <label class="label" for="{{ filter_form.start.id_for_label }}">From</label>
+            {{ filter_form.start }}
+        </div>
+        <div class="field">
+            <label class="label" for="{{ filter_form.end.id_for_label }}">To</label>
+            {{ filter_form.end }}
+        </div>
+        <div class="filter-btns">
+            <button type="submit" class="btn btn-primary">Filter</button>
+            {% if has_filters %}<a href="{% url 'income_list' %}" class="btn btn-outline">Reset</a>{% endif %}
+        </div>
+    </form>
+
+    <div class="summary-bar">
+        <span class="pill">{{ result_count }} entr{{ result_count|pluralize:"y,ies" }}{% if has_filters %} (filtered){% endif %}</span>
+        <span class="pill">Total <strong class="text-success">₹{{ result_total|floatformat:2 }}</strong></span>
+        <span class="pill"><i class="dot online"></i> Online <strong>₹{{ split.online|floatformat:2 }}</strong></span>
+        <span class="pill"><i class="dot offline"></i> Cash <strong>₹{{ split.offline|floatformat:2 }}</strong></span>
+        {% if split.unset %}<span class="pill">Mode not set <strong>₹{{ split.unset|floatformat:2 }}</strong></span>{% endif %}
+    </div>
+
+    <div class="card tx-list">
+        {% for income in page_obj %}
+            <div class="tx">
+                <div class="tx-avatar" data-cat="{{ income.source }}">{{ income.source|slice:":1"|upper }}</div>
+                <div class="tx-main">
+                    <div class="tx-title">{{ income.description|default:income.source }}</div>
+                    <div class="tx-sub"><span class="chip" data-cat="{{ income.source }}">{{ income.source }}</span>{% if income.payment_label %}<span class="pay-chip {{ income.payment_mode }}">{{ income.payment_label }}</span>{% endif %}<span>{{ income.date|date:"M d, Y" }}</span></div>
+                </div>
+                <div class="tx-amount in">+₹{{ income.amount|floatformat:2 }}</div>
+                <div class="tx-actions">
+                    <a href="{% url 'income_edit' income.id %}" class="icon-btn" title="Edit" aria-label="Edit income"><svg class="icon"><use href="#i-edit"/></svg></a>
+                    <form method="POST" action="{% url 'income_delete' income.id %}"
+                          data-confirm="This income entry will be removed permanently." data-confirm-title="Delete this income?">
+                        {% csrf_token %}
+                        <button type="submit" class="icon-btn danger" title="Delete" aria-label="Delete income"><svg class="icon"><use href="#i-trash"/></svg></button>
+                    </form>
+                </div>
+            </div>
+        {% empty %}
+            <div class="empty">
+                <div class="empty-icon"><svg class="icon"><use href="#{% if has_filters %}i-search{% else %}i-income{% endif %}"/></svg></div>
+                {% if has_filters %}
+                    <h3>No matching income</h3>
+                    <p>Try a different search or clear the filters.</p>
+                    <a href="{% url 'income_list' %}" class="btn btn-outline" style="margin-top:10px">Reset filters</a>
+                {% else %}
+                    <h3>No income yet</h3>
+                    <p>Add your salary or any money you received to see your real balance.</p>
+                    <a href="{% url 'income_add' %}" class="btn btn-primary" style="margin-top:10px">Add income</a>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+        <nav class="pager" aria-label="Pages">
+            {% if page_obj.has_previous %}
+                <a class="btn btn-outline btn-sm" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>
+            {% else %}
+                <span class="btn btn-outline btn-sm disabled">Previous</span>
+            {% endif %}
+            <span class="current">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+            {% if page_obj.has_next %}
+                <a class="btn btn-outline btn-sm" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.next_page_number }}">Next</a>
+            {% else %}
+                <span class="btn btn-outline btn-sm disabled">Next</span>
+            {% endif %}
+        </nav>
+    {% endif %}
+{% endblock %}
+
+{% block fab %}
+    <a href="{% url 'income_add' %}" class="fab" aria-label="Add income"><svg class="icon"><use href="#i-plus"/></svg></a>
+{% endblock %}

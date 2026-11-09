@@ -1,0 +1,84 @@
+{% extends "expenses/base.html" %}
+{% block title %}{{ title }} - Expense Tracker{% endblock %}
+
+{% block content %}
+<div class="narrow">
+    <a href="{% url 'income_list' %}" class="back-link"><svg class="icon icon-sm"><use href="#i-arrow-left"/></svg> Back to income</a>
+
+    <form method="POST" class="card card-pad">
+        {% csrf_token %}
+        <h1 class="form-card-title">{{ title }}</h1>
+        <p class="form-card-sub">Record money you received.</p>
+
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger"><svg class="icon"><use href="#i-alert"/></svg><div class="alert-body">{{ form.non_field_errors }}</div></div>
+        {% endif %}
+
+        <div class="form-grid">
+            <div class="field">
+                <label class="label" for="{{ form.date.id_for_label }}">Date</label>
+                {{ form.date }}
+                {% for error in form.date.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="field">
+                <label class="label" for="{{ form.amount.id_for_label }}">Amount</label>
+                <div class="input-group"><span class="prefix">₹</span>{{ form.amount }}</div>
+                {% for error in form.amount.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+            </div>
+        </div>
+
+        <div class="field">
+            <label class="label" for="{{ form.source.id_for_label }}">{{ form.source.label }}</label>
+            {{ form.source }}
+            <datalist id="source-options">
+                {% for name in source_suggestions %}<option value="{{ name }}">{% endfor %}
+            </datalist>
+            {% for error in form.source.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="field">
+            <span class="label">How did you receive it?</span>
+            <div class="seg" role="radiogroup" aria-label="Payment mode">
+                {% for radio in form.payment_mode %}
+                    <label class="seg-opt" for="{{ radio.id_for_label }}">{{ radio.tag }}<span>{{ radio.choice_label }}</span></label>
+                {% endfor %}
+            </div>
+            {% for error in form.payment_mode.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="field" id="app-field">
+            <label class="label" for="{{ form.payment_app.id_for_label }}">Received using <small>(Google Pay, PhonePe, bank...)</small></label>
+            {{ form.payment_app }}
+            {% for error in form.payment_app.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="field">
+            <label class="label" for="{{ form.description.id_for_label }}">Note <small>(optional)</small></label>
+            {{ form.description }}
+            {% for error in form.description.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">{{ submit_label }}</button>
+            <a href="{% url 'income_list' %}" class="btn btn-outline">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    /* Show the "Received using" box only when the payment mode is Online. */
+    (function () {
+        var field = document.getElementById('app-field');
+        var radios = document.querySelectorAll('input[name="payment_mode"]');
+        if (!field || !radios.length) { return; }
+        function sync() {
+            var checked = document.querySelector('input[name="payment_mode"]:checked');
+            field.hidden = !(checked && checked.value === 'online');
+        }
+        radios.forEach(function (radio) { radio.addEventListener('change', sync); });
+        sync();
+    })();
+</script>
+{% endblock %}

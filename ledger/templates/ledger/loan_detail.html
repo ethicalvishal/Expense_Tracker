@@ -1,0 +1,151 @@
+{% extends "expenses/base.html" %}
+{% block title %}{{ loan.person }} - Loan - Expense Tracker{% endblock %}
+
+{% block content %}
+    <a href="{% url 'loan_list' %}" class="back-link"><svg class="icon icon-sm"><use href="#i-arrow-left"/></svg> Back to loans</a>
+
+    <div class="card card-pad mb">
+        <div class="loan-head">
+            <div class="tx-avatar big" data-cat="{{ loan.person }}">{{ loan.person|slice:":1"|upper }}</div>
+            <div class="loan-title">
+                <h1 class="page-title">{{ loan.person }}</h1>
+                <div class="tx-sub">
+                    <span class="pay-chip {{ loan.direction }}">{% if loan.direction == 'lent' %}You lent{% else %}You borrowed{% endif %}</span>
+                    {% if loan.status == 'settled' %}<span class="pay-chip online">Settled</span>
+                    {% elif loan.is_overdue %}<span class="pay-chip overdue">Overdue</span>
+                    {% elif loan.status == 'partial' %}<span class="pay-chip">Partly repaid</span>
+                    {% else %}<span class="pay-chip">Pending</span>{% endif %}
+                </div>
+            </div>
+            <div class="head-actions">
+                <a href="{% url 'loan_edit' loan.id %}" class="btn btn-outline btn-sm"><svg class="icon icon-sm"><use href="#i-edit"/></svg> Edit</a>
+                <form method="POST" action="{% url 'loan_delete' loan.id %}"
+                      data-confirm="This loan and all of its repayments will be removed permanently."
+                      data-confirm-title="Delete this loan?" data-confirm-ok="Delete loan">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-danger btn-sm"><svg class="icon icon-sm"><use href="#i-trash"/></svg> Delete</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="loan-figures">
+            <div><div class="stat-label">Loan amount</div><div class="stat-value">₹{{ loan.amount|floatformat:2 }}</div></div>
+            <div><div class="stat-label">{% if loan.direction == 'lent' %}Received back{% else %}Paid back{% endif %}</div><div class="stat-value text-success">₹{{ loan.repaid_amount|floatformat:2 }}</div></div>
+            <div><div class="stat-label">Still pending</div><div class="stat-value{% if loan.remaining > 0 %} text-danger{% endif %}">₹{{ loan.remaining|floatformat:2 }}</div></div>
+        </div>
+        <div class="bar"><span style="width: {{ loan.repaid_percent }}%"></span></div>
+        <p class="muted" style="margin-top:8px;font-size:.85rem">{{ loan.repaid_percent }}% repaid</p>
+
+        <dl class="facts">
+            <div><dt>{% if loan.direction == 'lent' %}Given on{% else %}Taken on{% endif %}</dt><dd>{{ loan.date|date:"M d, Y" }}</dd></div>
+            <div><dt>Return by</dt><dd>{% if loan.due_date %}{{ loan.due_date|date:"M d, Y" }}{% else %}Not set{% endif %}</dd></div>
+            <div><dt>Paid using</dt><dd>{{ loan.payment_label|default:"-" }}</dd></div>
+            {% if loan.note %}<div class="wide"><dt>Note</dt><dd>{{ loan.note }}</dd></div>{% endif %}
+        </dl>
+    </div>
+
+    <div class="detail-grid">
+        <div class="card">
+            <div class="card-pad" style="padding-bottom:6px"><h3 class="card-title" style="margin:0">Repayments</h3></div>
+            <div class="tx-list">
+                {% for repayment in repayments %}
+                    <div class="tx">
+                        <div class="tx-main">
+                            <div class="tx-title">₹{{ repayment.amount|floatformat:2 }}</div>
+                            <div class="tx-sub">
+                                <span>{{ repayment.date|date:"M d, Y" }}</span>
+                                {% if repayment.payment_label %}<span class="pay-chip {{ repayment.payment_mode }}">{{ repayment.payment_label }}</span>{% endif %}
+                                {% if repayment.note %}<span>{{ repayment.note }}</span>{% endif %}
+                            </div>
+                        </div>
+                        <div class="tx-actions">
+                            <form method="POST" action="{% url 'repayment_delete' repayment.id %}"
+                                  data-confirm="This repayment will be removed and the pending amount will go up again."
+                                  data-confirm-title="Remove this repayment?" data-confirm-ok="Remove">
+                                {% csrf_token %}
+                                <button type="submit" class="icon-btn danger" title="Remove" aria-label="Remove repayment"><svg class="icon"><use href="#i-trash"/></svg></button>
+                            </form>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="empty" style="padding:28px 20px">
+                        <p>No repayments yet.</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card card-pad">
+            {% if loan.remaining > 0 %}
+                <form method="POST">
+                    {% csrf_token %}
+                    <h3 class="card-title">Record a repayment</h3>
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger"><svg class="icon"><use href="#i-alert"/></svg><div class="alert-body">{{ form.non_field_errors }}</div></div>
+                    {% endif %}
+
+                    <div class="form-grid">
+                        <div class="field">
+                            <label class="label" for="{{ form.amount.id_for_label }}">Amount</label>
+                            <div class="input-group"><span class="prefix">₹</span>{{ form.amount }}</div>
+                            {% for error in form.amount.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="field">
+                            <label class="label" for="{{ form.date.id_for_label }}">Date</label>
+                            {{ form.date }}
+                            {% for error in form.date.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <span class="label">Payment mode</span>
+                        <div class="seg" role="radiogroup" aria-label="Payment mode">
+                            {% for radio in form.payment_mode %}
+                                <label class="seg-opt" for="{{ radio.id_for_label }}">{{ radio.tag }}<span>{{ radio.choice_label }}</span></label>
+                            {% endfor %}
+                        </div>
+                        {% for error in form.payment_mode.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field" id="app-field">
+                        <label class="label" for="{{ form.payment_app.id_for_label }}">Paid using</label>
+                        {{ form.payment_app }}
+                        {% for error in form.payment_app.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <div class="field">
+                        <label class="label" for="{{ form.note.id_for_label }}">Note <small>(optional)</small></label>
+                        {{ form.note }}
+                        {% for error in form.note.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block">Save repayment</button>
+                </form>
+            {% else %}
+                <div class="empty">
+                    <div class="empty-icon"><svg class="icon"><use href="#i-check-circle"/></svg></div>
+                    <h3>Fully repaid</h3>
+                    <p>Nothing is pending on this loan.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    /* Show the "Paid using" box only when the payment mode is Online. */
+    (function () {
+        var field = document.getElementById('app-field');
+        var radios = document.querySelectorAll('input[name="payment_mode"]');
+        if (!field || !radios.length) { return; }
+        function sync() {
+            var checked = document.querySelector('input[name="payment_mode"]:checked');
+            field.hidden = !(checked && checked.value === 'online');
+        }
+        radios.forEach(function (radio) { radio.addEventListener('change', sync); });
+        sync();
+    })();
+</script>
+{% endblock %}
